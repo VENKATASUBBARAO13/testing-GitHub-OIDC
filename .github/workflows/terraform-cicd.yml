@@ -9,7 +9,7 @@ permissions:
 
 env:
   AWS_REGION: us-east-1
-  TF_VERSION: "1.9.8"
+  TF_VERSION: "1.10.5"
   TF_IN_AUTOMATION: "true"
   BUCKET_NAME: ${{ vars.TF_STATE_BUCKET_NAME }}
 
