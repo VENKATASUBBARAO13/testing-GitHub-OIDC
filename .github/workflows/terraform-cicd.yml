@@ -1,3 +1,4 @@
+
 name: Terraform Deploy
 
 on:
@@ -11,7 +12,9 @@ env:
   AWS_REGION: us-east-1
   TF_VERSION: "1.10.5"
   TF_IN_AUTOMATION: "true"
-  BUCKET_NAME: ${{ vars.TF_STATE_BUCKET_NAME }}
+  TF_INPUT: "false"
+  STATE_BUCKET: devncloudtechdevopsrrr
+  STATE_KEY: terraform.tfstate
 
 jobs:
   plan:
@@ -19,61 +22,43 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials using OIDC
+      - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: GitHubTerraformPlan
 
-      - name: Verify AWS identity
-        run: aws sts get-caller-identity
+      - name: Verify AWS identity and S3 access
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws sts get-caller-identity
+
+          aws s3api get-bucket-location \
+            --bucket "$STATE_BUCKET"
+
+          aws s3api list-objects-v2 \
+            --bucket "$STATE_BUCKET" \
+            --prefix "$STATE_KEY" \
+            --max-items 5
+
+          if aws s3api head-object \
+            --bucket "$STATE_BUCKET" \
+            --key "$STATE_KEY" >/dev/null 2>&1; then
+            echo "State object is accessible."
+          else
+            echo "State HEAD failed or object missing."
+            echo "Check S3 permissions if init fails."
+          fi
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
-
-      - name: Check or create S3 bucket
-        if: ${{ env.BUCKET_NAME != '' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          echo "Checking S3 bucket: $BUCKET_NAME"
-
-          # Check buckets owned by this AWS account.
-          EXISTING=$(aws s3api list-buckets \
-            --query "Buckets[?Name=='${BUCKET_NAME}'].Name | [0]" \
-            --output text)
-
-          if [ "$EXISTING" = "$BUCKET_NAME" ]; then
-            echo "Bucket already exists in this account."
-          else
-            echo "Creating S3 bucket..."
-
-            if [ "$AWS_REGION" = "us-east-1" ]; then
-              aws s3api create-bucket \
-                --bucket "$BUCKET_NAME" \
-                --region "$AWS_REGION"
-            else
-              aws s3api create-bucket \
-                --bucket "$BUCKET_NAME" \
-                --region "$AWS_REGION" \
-                --create-bucket-configuration \
-                "LocationConstraint=$AWS_REGION"
-            fi
-          fi
-
-      - name: Verify S3 bucket
-        if: ${{ env.BUCKET_NAME != '' }}
-        run: |
-          aws s3api head-bucket \
-            --bucket "$BUCKET_NAME"
-          echo "S3 bucket is available."
 
       - name: Terraform Init
         run: terraform init -input=false
@@ -84,7 +69,7 @@ jobs:
       - name: Terraform Plan
         run: terraform plan -input=false -out=tfplan
 
-      - name: Upload Terraform plan
+      - name: Upload Terraform Plan
         uses: actions/upload-artifact@v4
         with:
           name: terraform-plan
@@ -99,10 +84,10 @@ jobs:
     environment: production
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials using OIDC
+      - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
@@ -120,7 +105,7 @@ jobs:
       - name: Terraform Init
         run: terraform init -input=false
 
-      - name: Download Terraform plan
+      - name: Download Terraform Plan
         uses: actions/download-artifact@v4
         with:
           name: terraform-plan
