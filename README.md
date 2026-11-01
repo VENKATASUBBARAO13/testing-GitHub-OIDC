@@ -174,7 +174,7 @@ The trust policy must match the OIDC subject claim GitHub actually issues.
 This repository has GitHub's immutable subject claim enabled. The visible subject prefix is:
 
 ```text
-repo:VENKATASUBBARAO13@231434831/testing-GitHub-OIDC@1441535877
+repo:YOUR_GITHUB_NAME@YOUR_OWNER_ID/YOUR_REPOSITORY_NAME@YOUR_REPOSITORY_ID
 ```
 
 For the current workflow, the trust policy should allow the main branch for Plan and the `production` environment for Apply. Confirm the exact subject values against **Repository Settings → Actions → OIDC** and keep the audience restricted to `sts.amazonaws.com`.
@@ -186,8 +186,8 @@ Example condition for this repository's current immutable subject format:
   "StringEquals": {
     "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
     "token.actions.githubusercontent.com:sub": [
-      "repo:VENKATASUBBARAO13@231434831/testing-GitHub-OIDC@1441535877:ref:refs/heads/main",
-      "repo:VENKATASUBBARAO13@231434831/testing-GitHub-OIDC@1441535877:environment:production"
+      "repo:YOUR_GITHUB_NAME@YOUR_OWNER_ID/YOUR_REPOSITORY_NAME@YOUR_REPOSITORY_ID:ref:refs/heads/main",
+      "repo:YOUR_GITHUB_NAME@YOUR_OWNER_ID/YOUR_REPOSITORY_NAME@YOUR_REPOSITORY_ID:environment:production"
     ]
   }
 }
@@ -220,11 +220,11 @@ The workflow references this exact environment name in the Apply job.
 
 The backend is defined in [`backend.tf`](backend.tf):
 
-- Bucket: `terraform-state-265751834448-us-east-1`
+- Bucket: `YOUR_TERRAFORM_STATE_BUCKET`
 - Key: `terraform.tfstate`
 - Region: `us-east-1`
 - S3 lockfile: enabled
-- Expected AWS account: `265751834448`
+- Expected AWS account: `YOUR_AWS_ACCOUNT_ID`
 
 The Plan job checks for the bucket, creates it if absent, verifies the expected bucket owner, and enables bucket versioning.
 
