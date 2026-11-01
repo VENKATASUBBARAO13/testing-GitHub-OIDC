@@ -19,7 +19,7 @@ Terraform state is configured to use an Amazon S3 backend with S3 lockfile suppo
 ```text
 Developer
    |
-   | Push / manually run workflow
+   | Manually dispatch workflow (workflow_dispatch)
    v
 GitHub Repository
    |
